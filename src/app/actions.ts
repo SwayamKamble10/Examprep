@@ -43,29 +43,32 @@ export async function startPracticeSession(formData: FormData) {
     numQuestions,
   };
 
-  let questions: PracticeQuestion[];
+  let sessionId: string | null = null;
   try {
     const result = await generatePracticeQuestions(aiInput);
-    questions = result.questions;
+    const questions = result.questions;
     
     if (!questions || questions.length === 0) {
       throw new Error('AI failed to generate questions. Please try a different topic.');
     }
+
+    sessionId = randomUUID();
+    createSession(sessionId, {
+      exam,
+      subject,
+      topic,
+      difficulty,
+      questions,
+    });
+
   } catch (error) {
     console.error('Error generating practice session:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to start practice session.');
   }
 
-  const sessionId = randomUUID();
-  createSession(sessionId, {
-    exam,
-    subject,
-    topic,
-    difficulty,
-    questions,
-  });
-  
-  redirect(`/practice/${sessionId}`);
+  if (sessionId) {
+    redirect(`/practice/${sessionId}`);
+  }
 }
 
 export async function submitPracticeSession(sessionId: string, userAnswers: PracticeSession['userAnswers']) {
