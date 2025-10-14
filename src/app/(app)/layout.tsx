@@ -1,11 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import {
-  Book,
-  Home,
-  MessageSquare,
-  PanelLeft,
-  User,
-} from 'lucide-react';
+import { Book, Home, MessageSquare, PanelLeft, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,9 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Logo from '@/components/logo';
+import { useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 const navLinks = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -27,6 +31,15 @@ const navLinks = [
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    // You might want to redirect the user to the homepage after logout
+    window.location.href = '/';
+  };
+  
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
@@ -60,7 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
-              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetTitle>Navigation Menu</SheetTitle>
               <nav className="grid gap-2 text-lg font-medium">
                 <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 mb-4">
                   <Logo />
@@ -85,19 +98,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" alt="User Avatar" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage
+                    src={user?.photoURL ?? undefined}
+                    alt="User Avatar"
+                  />
+                  <AvatarFallback>
+                    {user?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <span className="sr-only">Toggle user menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{user ? user.displayName || user.email : 'My Account'}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

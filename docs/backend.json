@@ -36,7 +36,6 @@
       },
       "required": [
         "id",
-        "googleId",
         "name",
         "email",
         "createdAt"
@@ -231,8 +230,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
