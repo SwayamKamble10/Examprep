@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Book, Home, MessageSquare, PanelLeft, User } from 'lucide-react';
+import { Book, Home, MessageSquare, PanelLeft, User, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ const navLinks = [
   { href: '/practice', icon: Book, label: 'New Practice' },
   { href: '/profile', icon: User, label: 'Profile' },
   { href: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  { href: '/admin/add-questions', icon: PlusCircle, label: 'Add Questions' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

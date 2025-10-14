@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
 import type { PracticeSession, PracticeQuestion } from './lib/types';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
 
 // A server-side only utility to get an admin-authenticated firestore instance.
@@ -129,4 +129,68 @@ export async function submitFeedback(prevState: any, formData: FormData) {
     console.log('Feedback submitted:', feedback);
     // Here you would save the feedback to your database
     return { success: 'Thank you for your feedback!' };
+}
+
+const AddQuestionSchema = z.object({
+  exam: z.enum(['JEE', 'NEET']),
+  subject: z.enum(['Physics', 'Chemistry', 'Biology', 'Math']),
+  topic: z.string().min(3),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']),
+  year: z.coerce.number().min(1980).max(new Date().getFullYear()),
+  questionText: z.string().min(10),
+  option1: z.string().min(1),
+  option2: z.string().min(1),
+  option3: z.string().min(1),
+  option4: z.string().min(1),
+  correctAnswer: z.string().min(1),
+  solution: z.string().min(10),
+});
+
+export async function addQuestion(formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validationResult = AddQuestionSchema.safeParse(rawData);
+
+  if (!validationResult.success) {
+    return { error: validationResult.error.flatten().fieldErrors };
+  }
+
+  const { exam, subject, topic, difficulty, year, questionText, option1, option2, option3, option4, correctAnswer, solution } = validationResult.data;
+
+  if (exam === 'NEET' && subject === 'Math') {
+    return { error: 'Math is not a subject in NEET.' };
+  }
+  if (exam === 'JEE' && subject === 'Biology') {
+    return { error: 'Biology is not a subject in JEE (Main).' };
+  }
+  
+  const options = [option1, option2, option3, option4];
+  if (!options.includes(correctAnswer)) {
+      return { error: 'The correct answer must be one of the options.' };
+  }
+
+  try {
+    const firestore = getAdminFirestore();
+    const questionsCollection = collection(firestore, 'questions');
+
+    const newQuestion = {
+        exam,
+        subject,
+        topic,
+        difficulty,
+        year,
+        questionText,
+        options,
+        correctAnswer,
+        solution,
+        createdAt: serverTimestamp()
+    }
+
+    await addDoc(questionsCollection, newQuestion);
+    
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error adding question:', error);
+    return { error: error instanceof Error ? error.message : 'Failed to add question to database.' };
+  }
 }

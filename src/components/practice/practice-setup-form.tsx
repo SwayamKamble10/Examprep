@@ -38,7 +38,7 @@ const PracticeSetupSchema = z.object({
 
 type PracticeSetupValues = z.infer<typeof PracticeSetupSchema>;
 
-const subjectConfig = {
+export const subjectConfig = {
     JEE: [
       { value: 'Physics', label: 'Physics', icon: Atom },
       { value: 'Chemistry', label: 'Chemistry', icon: Beaker },
