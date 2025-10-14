@@ -5,9 +5,14 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
 import type { PracticeSession } from './lib/types';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
-import { auth }_from_ 'firebase-admin';
+
+// A server-side only utility to get an admin-authenticated firestore instance.
+function getAdminFirestore() {
+    const { firestore } = getSdks();
+    return firestore;
+}
 
 const PracticeSetupSchema = z.object({
   exam: z.enum(['JEE', 'NEET']),
@@ -16,12 +21,6 @@ const PracticeSetupSchema = z.object({
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
   numQuestions: z.coerce.number().min(1, 'Please enter at least 1 question.').max(10, 'You can generate a maximum of 10 questions for this prototype.'),
 });
-
-// A server-side only utility to get an admin-authenticated firestore instance.
-function getAdminFirestore() {
-    const { firestore } = getSdks(auth().app);
-    return firestore;
-}
 
 export async function startPracticeSession(formData: FormData, userId: string) {
   if (!userId) {
