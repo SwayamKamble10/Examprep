@@ -5,7 +5,7 @@ import { createSession, updateSession } from '@/lib/session-cache';
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
-import type { PracticeSession } from './lib/types';
+import type { PracticeSession, PracticeQuestion } from './lib/types';
 
 
 const PracticeSetupSchema = z.object({
@@ -43,27 +43,29 @@ export async function startPracticeSession(formData: FormData) {
     numQuestions,
   };
 
+  let questions: PracticeQuestion[];
   try {
-    const { questions } = await generatePracticeQuestions(aiInput);
+    const result = await generatePracticeQuestions(aiInput);
+    questions = result.questions;
     
     if (!questions || questions.length === 0) {
       throw new Error('AI failed to generate questions. Please try a different topic.');
     }
-
-    const sessionId = randomUUID();
-    createSession(sessionId, {
-      exam,
-      subject,
-      topic,
-      difficulty,
-      questions,
-    });
-    
-    redirect(`/practice/${sessionId}`);
   } catch (error) {
     console.error('Error generating practice session:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to start practice session.');
   }
+
+  const sessionId = randomUUID();
+  createSession(sessionId, {
+    exam,
+    subject,
+    topic,
+    difficulty,
+    questions,
+  });
+  
+  redirect(`/practice/${sessionId}`);
 }
 
 export async function submitPracticeSession(sessionId: string, userAnswers: PracticeSession['userAnswers']) {
