@@ -26,6 +26,7 @@ import {
 import { Atom, Beaker, Dna, Loader2, Sigma, Wand2 } from 'lucide-react';
 import type { Exam } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 const PracticeSetupSchema = z.object({
   exam: z.enum(['JEE', 'NEET'], { required_error: 'Please select an exam.' }),
@@ -53,6 +54,7 @@ const subjectConfig = {
 export function PracticeSetupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const form = useForm<PracticeSetupValues>({
     resolver: zodResolver(PracticeSetupSchema),
@@ -65,6 +67,14 @@ export function PracticeSetupForm() {
   const selectedExam = form.watch('exam');
 
   const onSubmit = async (data: PracticeSetupValues) => {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to start a practice session.",
+        });
+        return;
+    }
     setIsSubmitting(true);
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
@@ -72,7 +82,7 @@ export function PracticeSetupForm() {
     });
 
     try {
-      await startPracticeSession(formData);
+      await startPracticeSession(formData, user.uid);
       // Redirect is handled by the server action
     } catch (error) {
         toast({
@@ -196,7 +206,7 @@ export function PracticeSetupForm() {
             />
         </div>
 
-        <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+        <Button type="submit" disabled={isSubmitting || !user} className="w-full md:w-auto">
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

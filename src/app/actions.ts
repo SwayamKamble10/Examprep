@@ -1,12 +1,13 @@
 'use server';
 
 import { generatePracticeQuestions, type GeneratePracticeQuestionsInput } from '@/ai/flows/generate-practice-questions';
-import { createSession, updateSession } from '@/lib/session-cache';
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
-import type { PracticeSession, PracticeQuestion } from './lib/types';
-
+import type { PracticeSession } from './lib/types';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { getSdks } from '@/firebase';
+import { auth }_from_ 'firebase-admin';
 
 const PracticeSetupSchema = z.object({
   exam: z.enum(['JEE', 'NEET']),
@@ -16,7 +17,17 @@ const PracticeSetupSchema = z.object({
   numQuestions: z.coerce.number().min(1, 'Please enter at least 1 question.').max(10, 'You can generate a maximum of 10 questions for this prototype.'),
 });
 
-export async function startPracticeSession(formData: FormData) {
+// A server-side only utility to get an admin-authenticated firestore instance.
+function getAdminFirestore() {
+    const { firestore } = getSdks(auth().app);
+    return firestore;
+}
+
+export async function startPracticeSession(formData: FormData, userId: string) {
+  if (!userId) {
+    throw new Error('You must be logged in to start a practice session.');
+  }
+  
   const rawData = Object.fromEntries(formData.entries());
   const validationResult = PracticeSetupSchema.safeParse(rawData);
 
@@ -53,13 +64,23 @@ export async function startPracticeSession(formData: FormData) {
     }
 
     sessionId = randomUUID();
-    createSession(sessionId, {
+    const firestore = getAdminFirestore();
+    const sessionRef = doc(firestore, 'users', userId, 'practiceSessions', sessionId);
+    
+    const sessionData: Omit<PracticeSession, 'id'> = {
+      userId,
       exam,
       subject,
       topic,
       difficulty,
       questions,
-    });
+      userAnswers: {},
+      status: 'ongoing',
+      startTime: Date.now(),
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(sessionRef, sessionData);
 
   } catch (error) {
     console.error('Error generating practice session:', error);
@@ -71,16 +92,25 @@ export async function startPracticeSession(formData: FormData) {
   }
 }
 
-export async function submitPracticeSession(sessionId: string, userAnswers: PracticeSession['userAnswers']) {
-    const session = updateSession(sessionId, {
+export async function submitPracticeSession(sessionId: string, userId: string, userAnswers: PracticeSession['userAnswers']) {
+    if (!userId) {
+        throw new Error('You must be logged in to submit a practice session.');
+    }
+
+    const firestore = getAdminFirestore();
+    const sessionRef = doc(firestore, 'users', userId, 'practiceSessions', sessionId);
+
+    const docSnap = await getDoc(sessionRef);
+
+    if (!docSnap.exists()) {
+        throw new Error('Session not found.');
+    }
+
+    await updateDoc(sessionRef, {
         userAnswers,
         status: 'completed',
         endTime: Date.now(),
     });
-
-    if (!session) {
-        throw new Error('Session not found.');
-    }
 
     redirect(`/practice/${sessionId}/results`);
 }

@@ -1,17 +1,18 @@
 'use client';
 
 import type { PracticeSession, UserAnswer } from '@/lib/types';
-import { useState, useReducer, useEffect, useMemo, useCallback } from 'react';
+import { useState, useReducer, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Check, Flag, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Flag, Loader2, X } from 'lucide-react';
 import { submitPracticeSession } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import QuestionPalette from './question-palette';
+import { useUser } from '@/firebase';
 
 type AnswersState = Record<number, UserAnswer | undefined>;
 type AnswersAction = 
@@ -60,6 +61,7 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [questionTime, setQuestionTime] = useState(0);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleSetQuestion = useCallback((index: number) => {
     setCurrentQuestionIndex(index);
@@ -109,6 +111,14 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
   }
   
   const handleSubmit = async () => {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to submit the session.",
+        });
+        return;
+    }
     setIsSubmitting(true);
     try {
         recordAnswer();
@@ -123,7 +133,7 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
                 timeTaken: existingTime + questionTime
             };
         }
-        await submitPracticeSession(session.id, finalAnswers);
+        await submitPracticeSession(session.id, user.uid, finalAnswers);
     } catch(error) {
         toast({
             variant: "destructive",
@@ -135,11 +145,19 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
   }
 
   const formatTime = (totalSeconds: number) => {
-    const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-    const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const seconds = (totalSeconds % 60).toString().padStart(2, '0');
     return `${minutes}:${seconds}`;
   };
+
+  if (!session || !currentQuestion) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-4 text-lg">Loading session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-[1fr_300px]">
@@ -154,7 +172,7 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
             <Progress value={progress} className="mt-2" />
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-base font-semibold leading-relaxed">{currentQuestion.questionText}</p>
+            <p className="text-base font-semibold leading-relaxed whitespace-pre-wrap">{currentQuestion.questionText}</p>
             <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
               {currentQuestion.options.map((option, index) => (
                 <div key={index} className="flex items-center space-x-2 p-3 border rounded-md has-[:checked]:bg-secondary has-[:checked]:border-primary/50 transition-colors">

@@ -1,32 +1,32 @@
 // This is a simple in-memory cache to simulate a database for the prototype.
-// Data will be lost on server restart.
+// Data will be lost on server restart. This is being replaced by firestore implementation.
+// This file is kept for type reference but is no longer actively used for session storage.
 
-import type { PracticeSession, PracticeQuestion } from './types';
+import type { PracticeSession } from './types';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getSdks } from '@/firebase';
 
-const sessionCache = new Map<string, PracticeSession>();
-
-export function getSession(id: string): PracticeSession | undefined {
-  return sessionCache.get(id);
+// A server-side only utility to get an admin-authenticated firestore instance.
+function getAdminFirestore() {
+    const { firestore } = getSdks();
+    return firestore;
 }
 
-export function createSession(id: string, data: Omit<PracticeSession, 'id' | 'userAnswers' | 'status' | 'startTime'>): PracticeSession {
-  const sessionData: PracticeSession = {
-    ...data,
-    id,
-    userAnswers: {},
-    status: 'ongoing',
-    startTime: Date.now(),
-  };
-  sessionCache.set(id, sessionData);
-  return sessionData;
-}
+export async function getSession(id: string, userId: string): Promise<PracticeSession | undefined> {
+  const firestore = getAdminFirestore();
+  const sessionRef = doc(firestore, 'users', userId, 'practiceSessions', id);
+  const docSnap = await getDoc(sessionRef);
 
-export function updateSession(id: string, updates: Partial<PracticeSession>): PracticeSession | undefined {
-    const session = sessionCache.get(id);
-    if (!session) {
-        return undefined;
-    }
-    const updatedSession = { ...session, ...updates };
-    sessionCache.set(id, updatedSession);
-    return updatedSession;
+  if (docSnap.exists()) {
+    // We need to handle the server timestamp
+    const data = docSnap.data();
+    const session: PracticeSession = {
+      ...data,
+      id: docSnap.id,
+      startTime: data.startTime,
+      createdAt: data.createdAt?.toDate()?.getTime() || Date.now(), // Convert timestamp
+    } as PracticeSession;
+    return session;
+  }
+  return undefined;
 }

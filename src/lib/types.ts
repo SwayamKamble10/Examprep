@@ -1,3 +1,5 @@
+import { FieldValue } from "firebase/firestore";
+
 export type Exam = "JEE" | "NEET";
 export type Subject = "Physics" | "Chemistry" | "Biology" | "Math";
 export type Difficulty = "Easy" | "Medium" | "Hard";
@@ -17,6 +19,7 @@ export type UserAnswer = {
 
 export interface PracticeSession {
   id: string;
+  userId: string;
   exam: Exam;
   subject: Subject;
   topic: string;
@@ -26,6 +29,7 @@ export interface PracticeSession {
   startTime: number;
   endTime?: number;
   status: 'ongoing' | 'completed';
+  createdAt: FieldValue | number;
 }
 
 export interface User {
