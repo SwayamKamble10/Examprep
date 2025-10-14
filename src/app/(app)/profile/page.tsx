@@ -4,15 +4,31 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Copy } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useUser();
+  const { toast } = useToast();
+
+  const handleCopy = () => {
+    if (user?.uid) {
+      navigator.clipboard.writeText(user.uid);
+      toast({
+        title: 'Copied to clipboard!',
+        description: 'Your User ID has been copied.',
+      });
+    }
+  };
 
   return (
     <>
@@ -41,10 +57,22 @@ export default function ProfilePage() {
               <p className="text-muted-foreground">{user?.email}</p>
             </div>
           </div>
-          <div>
-            <Button disabled>Edit Profile (Coming Soon)</Button>
-          </div>
+          {user?.uid && (
+            <div className="space-y-2">
+                <Label htmlFor="uid">Your Admin User ID (UID)</Label>
+                <div className="flex items-center gap-2">
+                    <Input id="uid" readOnly value={user.uid} />
+                    <Button variant="outline" size="icon" onClick={handleCopy}>
+                        <Copy className="h-4 w-4" />
+                    </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">Copy this ID to grant yourself admin access.</p>
+            </div>
+          )}
         </CardContent>
+        <CardFooter>
+            <Button disabled>Edit Profile (Coming Soon)</Button>
+        </CardFooter>
       </Card>
     </>
   );
