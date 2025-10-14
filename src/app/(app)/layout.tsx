@@ -28,8 +28,15 @@ const navLinks = [
   { href: '/practice', icon: Book, label: 'New Practice' },
   { href: '/profile', icon: User, label: 'Profile' },
   { href: '/feedback', icon: MessageSquare, label: 'Feedback' },
-  { href: '/admin/add-questions', icon: PlusCircle, label: 'Add Questions' },
 ];
+
+const adminNavLinks = [
+    { href: '/admin/add-questions', icon: PlusCircle, label: 'Add Questions' },
+];
+
+// Add your Firebase User UIDs here to grant admin access
+const adminUids = ['YOUR_ADMIN_UID_HERE'];
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -41,6 +48,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     window.location.href = '/';
   };
   
+  const isAdmin = user && adminUids.includes(user.uid);
+
+  const allNavLinks = [...navLinks, ...(isAdmin ? adminNavLinks : [])];
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
@@ -50,7 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex-1">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {navLinks.map(({ href, icon: Icon, label }) => (
+              {allNavLinks.map(({ href, icon: Icon, label }) => (
                 <Link
                   key={href}
                   href={href}
@@ -79,7 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6 mb-4">
                   <Logo />
                 </div>
-                {navLinks.map(({ href, icon: Icon, label }) => (
+                {allNavLinks.map(({ href, icon: Icon, label }) => (
                   <Link
                     key={href}
                     href={href}
