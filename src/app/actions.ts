@@ -1,11 +1,10 @@
 'use server';
 
-import { generatePracticeQuestions, type GeneratePracticeQuestionsInput } from '@/ai/flows/generate-practice-questions';
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'crypto';
-import type { PracticeSession } from './lib/types';
-import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import type { PracticeSession, PracticeQuestion } from './lib/types';
+import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
 
 // A server-side only utility to get an admin-authenticated firestore instance.
@@ -19,7 +18,7 @@ const PracticeSetupSchema = z.object({
   subject: z.enum(['Physics', 'Chemistry', 'Biology', 'Math']),
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
-  numQuestions: z.coerce.number().min(1, 'Please enter at least 1 question.').max(10, 'You can generate a maximum of 10 questions for this prototype.'),
+  numQuestions: z.coerce.number().min(1, 'Please enter at least 1 question.').max(20, 'You can fetch a maximum of 20 questions.'),
 });
 
 export async function startPracticeSession(formData: FormData, userId: string) {
@@ -45,25 +44,32 @@ export async function startPracticeSession(formData: FormData, userId: string) {
     throw new Error('Biology is not a subject in JEE (Main).');
   }
 
-  const aiInput: GeneratePracticeQuestionsInput = {
-    exam,
-    subject,
-    topic,
-    difficulty,
-    numQuestions,
-  };
-
   let sessionId: string | null = null;
   try {
-    const result = await generatePracticeQuestions(aiInput);
-    const questions = result.questions;
+    const firestore = getAdminFirestore();
+    const questionsCollection = collection(firestore, 'questions');
     
-    if (!questions || questions.length === 0) {
-      throw new Error('AI failed to generate questions. Please try a different topic.');
+    // Query for questions that match the criteria
+    const q = query(
+      questionsCollection,
+      where('exam', '==', exam),
+      where('subject', '==', subject),
+      where('topic', '==', topic),
+      where('difficulty', '==', difficulty)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const fetchedQuestions = querySnapshot.docs.map(doc => doc.data() as PracticeQuestion);
+
+    if (fetchedQuestions.length === 0) {
+      throw new Error('No questions found for the selected criteria. Please try a different topic or add questions to the database.');
     }
 
+    // Shuffle and pick the required number of questions
+    const shuffled = fetchedQuestions.sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, numQuestions);
+
     sessionId = randomUUID();
-    const firestore = getAdminFirestore();
     const sessionRef = doc(firestore, 'users', userId, 'practiceSessions', sessionId);
     
     const sessionData: Omit<PracticeSession, 'id'> = {
@@ -72,7 +78,7 @@ export async function startPracticeSession(formData: FormData, userId: string) {
       subject,
       topic,
       difficulty,
-      questions,
+      questions: selectedQuestions,
       userAnswers: {},
       status: 'ongoing',
       startTime: Date.now(),
@@ -82,7 +88,7 @@ export async function startPracticeSession(formData: FormData, userId: string) {
     await setDoc(sessionRef, sessionData);
 
   } catch (error) {
-    console.error('Error generating practice session:', error);
+    console.error('Error starting practice session:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to start practice session.');
   }
 

@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Atom, Beaker, Dna, Loader2, Sigma, Wand2 } from 'lucide-react';
+import { Atom, Beaker, Dna, Loader2, Sigma, BookCopy } from 'lucide-react';
 import type { Exam } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
@@ -33,7 +33,7 @@ const PracticeSetupSchema = z.object({
   subject: z.enum(['Physics', 'Chemistry', 'Biology', 'Math'], { required_error: 'Please select a subject.' }),
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard'], { required_error: 'Please select a difficulty.' }),
-  numQuestions: z.coerce.number().min(1, 'At least 1 question.').max(10, 'Max 10 for prototype.'),
+  numQuestions: z.coerce.number().min(1, 'At least 1 question.').max(20, 'Max 20 questions.'),
 });
 
 type PracticeSetupValues = z.infer<typeof PracticeSetupSchema>;
@@ -198,7 +198,7 @@ export function PracticeSetupForm() {
                 <FormItem>
                 <FormLabel>Number of Questions</FormLabel>
                 <FormControl>
-                    <Input type="number" min="1" max="10" {...field} />
+                    <Input type="number" min="1" max="20" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -210,12 +210,12 @@ export function PracticeSetupForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Questions...
+              Fetching Questions...
             </>
           ) : (
             <>
-              <Wand2 className="mr-2 h-4 w-4" />
-              Generate Practice Test
+              <BookCopy className="mr-2 h-4 w-4" />
+              Start Practice Test
             </>
           )}
         </Button>

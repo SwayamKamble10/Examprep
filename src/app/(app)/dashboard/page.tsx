@@ -25,8 +25,18 @@ import type { PracticeSession } from '@/lib/types';
 import { format } from 'date-fns';
 
 function SessionRow({ session }: { session: PracticeSession & { id: string } }) {
+    const answeredKeys = Object.keys(session.userAnswers).filter(key => session.userAnswers[parseInt(key)]?.status === 'answered');
+    const correctCount = answeredKeys.reduce((count, key) => {
+        const index = parseInt(key);
+        const userAnswer = session.userAnswers[index];
+        if (userAnswer && userAnswer.answer === session.questions[index].correctAnswer) {
+            return count + 1;
+        }
+        return count;
+    }, 0);
+
     const score = session.questions.length > 0
-      ? (Object.values(session.userAnswers).filter(a => a?.answer === session.questions[Object.keys(session.userAnswers).indexOf(a ? a.answer! : '')]?.correctAnswer).length / session.questions.length) * 100
+      ? (correctCount / session.questions.length) * 100
       : 0;
 
     return (
