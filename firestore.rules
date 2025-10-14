@@ -2,125 +2,132 @@
  * @fileoverview Firestore Security Rules for ExamPrep platform.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Users can only
- * create, read, update, and delete their own data. Public listing of user-specific data
- * is disallowed to protect user privacy.  Questions are publicly readable.
+ * This ruleset enforces a strict user-ownership model. Users can only access
+ * their own profile data and the practice sessions associated with their account.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles.  The {userId} MUST match the Firebase Auth UID.
- * - /questions/{questionId}: Stores exam questions. This collection is publicly readable.
- * - /users/{userId}/practiceSessions/{practiceSessionId}: Stores practice session data for a user. The userId is denormalized within the document for authorization independence.
- * - /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}: Stores individual question session data within a practice session.
+ * - /users/{userId}: Stores user profile information. The userId must match
+ *   the Firebase Auth UID.
+ * - /questions/{questionId}: Stores public question data. Read access is
+ *   unrestricted. Write access is disallowed.
+ * - /users/{userId}/practiceSessions/{practiceSessionId}: Stores practice session
+ *   data for individual users. The userId in the path must match the
+ *   'userId' field within the document.
+ * - /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}:
+ *   Stores individual question sessions nested under practice sessions.
+ *   Inherits ownership from the parent practice session.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - Questions are publicly readable but not writable by clients.
- * - Practice Sessions and Question Sessions are strictly user-owned.
+ * - Users can only list their own practice sessions.
+ * - Users can only create practice sessions under their own user ID.
+ * - Questions are read-only and cannot be created, updated, or deleted via the
+ *   client.
  *
  * Denormalization for Authorization:
- * - The `PracticeSession` document contains a `userId` field that must match the parent path.
+ * - The 'PracticeSession' documents denormalize the 'userId' field to enable
+ *   authorization checks without additional 'get()' calls.
+ *
+ * Structural Segregation:
+ * - User-specific data (practice sessions) is stored in a subcollection
+ *   under the user's document, ensuring private data is not mixed with public
+ *   data.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Defines the isSignedIn helper function.
-     * @path N/A
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Defines the isOwner helper function.
-     * @path N/A
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Defines the isExistingOwner helper function.
-     * @path N/A
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && exists(resource);
-    }
-
-    /**
-     * @description Enforces that the incoming data's ID field matches the userId in the path.  Used on create.
-     * @path N/A
-     */
-    function isValidOwnerIdOnCreate(userId) {
-        return request.resource.data.id == userId;
-    }
-
-    /**
-     * @description Enforces that a document's ID field cannot be changed after creation.  Used on update.
-     * @path N/A
-     */
-    function isValidOwnerIdOnUpdate(userId) {
-        return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * @description Rules for the /users/{userId} collection.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
+     * @allow (create) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can create their profile.
+     * @deny (create) User with UID 'otherUserId' cannot create a profile with ID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3'.
+     * @allow (get) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can read their profile.
+     * @deny (get) User with UID 'otherUserId' cannot read user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' profile.
+     * @allow (update) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can update their profile.
+     * @deny (update) User with UID 'otherUserId' cannot update user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' profile.
+     * @allow (delete) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can delete their profile.
+     * @deny (delete) User with UID 'otherUserId' cannot delete user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' profile.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      // Read rules
       allow get: if isOwner(userId);
       allow list: if false;
-
-      // Write rules
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for the /questions/{questionId} collection.
+     * @description Controls access to question documents.
      * @path /questions/{questionId}
+     * @allow (get) Any user can read any question.
+     * @allow (list) Any user can list questions.
+     * @deny (create) No user can create a question.
+     * @deny (update) No user can update a question.
+     * @deny (delete) No user can delete a question.
+     * @principle Questions are read-only for clients.
      */
     match /questions/{questionId} {
-      // Read rules: Publicly readable
       allow get, list: if true;
-
-      // Write rules: No client writes allowed.
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Rules for the /users/{userId}/practiceSessions/{practiceSessionId} collection.
+     * @description Controls access to practice session documents.
      * @path /users/{userId}/practiceSessions/{practiceSessionId}
+     * @allow (create) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can create a practice session under their ID.
+     * @deny (create) User with UID 'otherUserId' cannot create a practice session under user ID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3'.
+     * @allow (get) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can read their practice session.
+     * @deny (get) User with UID 'otherUserId' cannot read user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (list) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can list practice sessions under their ID.
+     * @deny (list) User with UID 'otherUserId' cannot list practice sessions under user ID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3'.
+     * @allow (update) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can update their practice session.
+     * @deny (update) User with UID 'otherUserId' cannot update user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (delete) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can delete their practice session.
+     * @deny (delete) User with UID 'otherUserId' cannot delete user with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/practiceSessions/{practiceSessionId} {
-      // Read rules
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      // Write rules
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) && resource.data.userId == userId;
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
     }
 
     /**
-     * @description Rules for the /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId} collection.
+     * @description Controls access to question session documents within a practice session.
      * @path /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}
+     * @allow (get) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can read a question session within their practice session.
+     * @deny (get) User with UID 'otherUserId' cannot read a question session within user 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (list) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can list question sessions within their practice session.
+     * @deny (list) User with UID 'otherUserId' cannot list question sessions within user 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (create) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can create a question session within their practice session.
+     * @deny (create) User with UID 'otherUserId' cannot create a question session within user 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (update) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can update a question session within their practice session.
+     * @deny (update) User with UID 'otherUserId' cannot update a question session within user 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @allow (delete) User with UID 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' can delete a question session within their practice session.
+     * @deny (delete) User with UID 'otherUserId' cannot delete a question session within user 'iAdMpf9VnlQBQRmAV8szqi1VZxI3' practice session.
+     * @principle Enforces document ownership and inheritance from parent PracticeSession.
      */
     match /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId} {
-      // Read rules
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      // Write rules
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/practiceSessions/$(practiceSessionId)).data.userId == userId;
+      allow list: if isOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/practiceSessions/$(practiceSessionId)).data.userId == userId;
+      allow create: if isOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/practiceSessions/$(practiceSessionId)).data.userId == userId;
+      allow update: if isExistingOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/practiceSessions/$(practiceSessionId)).data.userId == userId;
+      allow delete: if isExistingOwner(userId) && get(/databases/$(database)/documents/users/$(userId)/practiceSessions/$(practiceSessionId)).data.userId == userId;
     }
+  }
+
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
