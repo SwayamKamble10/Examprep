@@ -1,0 +1,319 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the ExamPrep platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "googleId": {
+          "type": "string",
+          "description": "The unique identifier provided by Google for the user."
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL of the user's profile image (e.g., from Google).",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "googleId",
+        "name",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Question": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Question",
+      "type": "object",
+      "description": "Represents a question for a specific exam, subject, and topic.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the question entity."
+        },
+        "exam": {
+          "type": "string",
+          "description": "The exam the question belongs to (e.g., JEE, NEET)."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject of the question (e.g., Physics, Chemistry, Biology)."
+        },
+        "topic": {
+          "type": "string",
+          "description": "The specific topic the question covers (e.g., Kinematics, Thermodynamics)."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level of the question (e.g., Easy, Medium, Hard)."
+        },
+        "questionText": {
+          "type": "string",
+          "description": "The text of the question."
+        },
+        "options": {
+          "type": "array",
+          "description": "An array of possible answer options for the question.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "correctAnswer": {
+          "type": "string",
+          "description": "The correct answer to the question."
+        },
+        "solution": {
+          "type": "string",
+          "description": "Detailed step-by-step solution to the question."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year the question appeared in the exam."
+        }
+      },
+      "required": [
+        "id",
+        "exam",
+        "subject",
+        "topic",
+        "difficulty",
+        "questionText",
+        "options",
+        "correctAnswer",
+        "solution",
+        "year"
+      ]
+    },
+    "PracticeSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PracticeSession",
+      "type": "object",
+      "description": "Represents a practice session taken by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the practice session entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N PracticeSession)"
+        },
+        "exam": {
+          "type": "string",
+          "description": "The exam practiced in the session (e.g., JEE, NEET)."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject practiced in the session (e.g., Physics, Chemistry, Biology)."
+        },
+        "topic": {
+          "type": "string",
+          "description": "The topic practiced in the session."
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Timestamp indicating when the practice session started.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "Timestamp indicating when the practice session ended.",
+          "format": "date-time"
+        },
+        "score": {
+          "type": "number",
+          "description": "The user's score in the practice session."
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "The total number of questions in the practice session."
+        },
+        "correctAnswers": {
+          "type": "number",
+          "description": "The number of questions answered correctly."
+        },
+        "incorrectAnswers": {
+          "type": "number",
+          "description": "The number of questions answered incorrectly."
+        },
+        "unansweredQuestions": {
+          "type": "number",
+          "description": "The number of questions left unanswered."
+        },
+        "questionSessions": {
+          "type": "array",
+          "description": "References to QuestionSessions. (Relationship: PracticeSession 1:N QuestionSession)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "exam",
+        "subject",
+        "startTime",
+        "endTime",
+        "score",
+        "totalQuestions",
+        "correctAnswers",
+        "incorrectAnswers",
+        "unansweredQuestions"
+      ]
+    },
+    "QuestionSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QuestionSession",
+      "type": "object",
+      "description": "Represents an individual question session within a practice session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the question session entity."
+        },
+        "practiceSessionId": {
+          "type": "string",
+          "description": "Reference to PracticeSession. (Relationship: PracticeSession 1:N QuestionSession)"
+        },
+        "questionId": {
+          "type": "string",
+          "description": "Reference to Question. (Relationship: Question 1:N QuestionSession)"
+        },
+        "userAnswer": {
+          "type": "string",
+          "description": "The answer the user selected for the question."
+        },
+        "isCorrect": {
+          "type": "boolean",
+          "description": "Indicates whether the user's answer was correct."
+        },
+        "timeTaken": {
+          "type": "number",
+          "description": "The time taken by the user to answer the question (in seconds)."
+        },
+        "markedForReview": {
+          "type": "boolean",
+          "description": "Indicates whether the user marked the question for review."
+        }
+      },
+      "required": [
+        "id",
+        "practiceSessionId",
+        "questionId",
+        "userAnswer",
+        "isCorrect",
+        "timeTaken",
+        "markedForReview"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. The userId is the Firebase Auth UID. Includes the googleId, which is used for Google login.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/questions/{questionId}",
+        "definition": {
+          "entityName": "Question",
+          "schema": {
+            "$ref": "#/backend/entities/Question"
+          },
+          "description": "Stores questions for different exams, subjects, and topics.",
+          "params": [
+            {
+              "name": "questionId",
+              "description": "Unique identifier for the question."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/practiceSessions/{practiceSessionId}",
+        "definition": {
+          "entityName": "PracticeSession",
+          "schema": {
+            "$ref": "#/backend/entities/PracticeSession"
+          },
+          "description": "Stores practice session data for a user. The userId is denormalized within the document for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user who owns the practice session."
+            },
+            {
+              "name": "practiceSessionId",
+              "description": "Unique identifier for the practice session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}",
+        "definition": {
+          "entityName": "QuestionSession",
+          "schema": {
+            "$ref": "#/backend/entities/QuestionSession"
+          },
+          "description": "Stores individual question session data within a practice session. Inherits ownership from the parent practiceSession.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user who owns the practice session."
+            },
+            {
+              "name": "practiceSessionId",
+              "description": "Unique identifier for the practice session."
+            },
+            {
+              "name": "questionSessionId",
+              "description": "Unique identifier for the question session."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the ExamPrep platform's core features, focusing on secure user authentication using Google Sign-In and efficient practice session management. Authorization Independence is achieved by storing User IDs directly within PracticeSession documents, eliminating the need for `get()` calls in security rules. Segregation of user data is maintained by nesting PracticeSessions under User documents. This approach provides a robust and easily debuggable security model.\n\nThe `users` collection stores user profiles, leveraging the `googleId` for authentication as requested. Practice sessions are stored under user-specific subcollections (`/users/{userId}/practiceSessions/{practiceSessionId}`), ensuring clear ownership and simplifying security rules.  Question sessions are nested under Practice Sessions.\n\nThis structure supports required QAPs by enabling secure `list` operations within the `/users/{userId}/practiceSessions` collection, as only the authenticated user can access their own practice sessions. It also provides a clear and scalable pattern for managing user-specific data."
+  }
+}

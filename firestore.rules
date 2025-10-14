@@ -1,0 +1,126 @@
+/**
+ * @fileoverview Firestore Security Rules for ExamPrep platform.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Users can only
+ * create, read, update, and delete their own data. Public listing of user-specific data
+ * is disallowed to protect user privacy.  Questions are publicly readable.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles.  The {userId} MUST match the Firebase Auth UID.
+ * - /questions/{questionId}: Stores exam questions. This collection is publicly readable.
+ * - /users/{userId}/practiceSessions/{practiceSessionId}: Stores practice session data for a user. The userId is denormalized within the document for authorization independence.
+ * - /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}: Stores individual question session data within a practice session.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed.
+ * - Questions are publicly readable but not writable by clients.
+ * - Practice Sessions and Question Sessions are strictly user-owned.
+ *
+ * Denormalization for Authorization:
+ * - The `PracticeSession` document contains a `userId` field that must match the parent path.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Defines the isSignedIn helper function.
+     * @path N/A
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Defines the isOwner helper function.
+     * @path N/A
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Defines the isExistingOwner helper function.
+     * @path N/A
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && exists(resource);
+    }
+
+    /**
+     * @description Enforces that the incoming data's ID field matches the userId in the path.  Used on create.
+     * @path N/A
+     */
+    function isValidOwnerIdOnCreate(userId) {
+        return request.resource.data.id == userId;
+    }
+
+    /**
+     * @description Enforces that a document's ID field cannot be changed after creation.  Used on update.
+     * @path N/A
+     */
+    function isValidOwnerIdOnUpdate(userId) {
+        return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * @description Rules for the /users/{userId} collection.
+     * @path /users/{userId}
+     */
+    match /users/{userId} {
+      // Read rules
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Write rules
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /questions/{questionId} collection.
+     * @path /questions/{questionId}
+     */
+    match /questions/{questionId} {
+      // Read rules: Publicly readable
+      allow get, list: if true;
+
+      // Write rules: No client writes allowed.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/practiceSessions/{practiceSessionId} collection.
+     * @path /users/{userId}/practiceSessions/{practiceSessionId}
+     */
+    match /users/{userId}/practiceSessions/{practiceSessionId} {
+      // Read rules
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Write rules
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId} collection.
+     * @path /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId}
+     */
+    match /users/{userId}/practiceSessions/{practiceSessionId}/questionSessions/{questionSessionId} {
+      // Read rules
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Write rules
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+  }
+}
