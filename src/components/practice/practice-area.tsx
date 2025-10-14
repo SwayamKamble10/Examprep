@@ -1,7 +1,7 @@
 'use client';
 
 import type { PracticeSession, UserAnswer } from '@/lib/types';
-import { useState, useReducer, useEffect, useMemo } from 'react';
+import { useState, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -15,20 +15,28 @@ import QuestionPalette from './question-palette';
 
 type AnswersState = Record<number, UserAnswer | undefined>;
 type AnswersAction = 
-  | { type: 'SET_ANSWER'; payload: { index: number; answer: string } }
+  | { type: 'SET_ANSWER'; payload: { index: number; answer: string, time: number } }
   | { type: 'CLEAR_ANSWER'; payload: { index: number } }
   | { type: 'TOGGLE_MARK'; payload: { index: number } };
 
 function answersReducer(state: AnswersState, action: AnswersAction): AnswersState {
   switch (action.type) {
     case 'SET_ANSWER': {
-      const { index, answer } = action.payload;
-      return { ...state, [index]: { ...state[index], answer, status: 'answered' } };
+      const { index, answer, time } = action.payload;
+      const existing = state[index] || {};
+      return { ...state, [index]: { ...existing, answer, status: 'answered', timeTaken: time } };
     }
     case 'CLEAR_ANSWER': {
       const { index } = action.payload;
-      const { [index]: _, ...rest } = state;
-      return rest;
+      const current = state[index];
+      if (current) {
+        const { answer, status, timeTaken, ...rest } = current;
+        if(Object.keys(rest).length > 0) {
+            return { ...state, [index]: rest };
+        }
+      }
+      const { [index]: _, ...restState } = state;
+      return restState;
     }
     case 'TOGGLE_MARK': {
         const { index } = action.payload;
@@ -36,7 +44,7 @@ function answersReducer(state: AnswersState, action: AnswersAction): AnswersStat
         if (current?.status === 'marked') {
             // unmark
             const { status, ...rest } = current;
-            return { ...state, [index]: Object.keys(rest).length > 0 ? { ...rest, status: 'answered' } as UserAnswer : undefined };
+            return { ...state, [index]: Object.keys(rest).length > 0 ? { ...rest, status: current.answer ? 'answered' : undefined } as UserAnswer : undefined };
         }
         return { ...state, [index]: { ...current, status: 'marked' } as UserAnswer };
     }
@@ -50,15 +58,20 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
   const [selectedOption, setSelectedOption] = useState<string | undefined>();
   const [answers, dispatch] = useReducer(answersReducer, {});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [questionTime, setQuestionTime] = useState(0);
   const { toast } = useToast();
+
+  const handleSetQuestion = useCallback((index: number) => {
+    setCurrentQuestionIndex(index);
+    setQuestionTime(0);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeElapsed(Date.now() - session.startTime);
+      setQuestionTime(prevTime => prevTime + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [session.startTime]);
+  }, [currentQuestionIndex]);
   
   const currentQuestion = session.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / session.questions.length) * 100;
@@ -67,12 +80,17 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
     setSelectedOption(answers[currentQuestionIndex]?.answer);
   }, [currentQuestionIndex, answers]);
 
-  const handleNext = () => {
+  const recordAnswer = () => {
     if (selectedOption) {
-      dispatch({ type: 'SET_ANSWER', payload: { index: currentQuestionIndex, answer: selectedOption } });
+      const existingTime = answers[currentQuestionIndex]?.timeTaken || 0;
+      dispatch({ type: 'SET_ANSWER', payload: { index: currentQuestionIndex, answer: selectedOption, time: existingTime + questionTime } });
     }
+  }
+
+  const handleNext = () => {
+    recordAnswer();
     if (currentQuestionIndex < session.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      handleSetQuestion(currentQuestionIndex + 1);
     }
   };
   
@@ -84,14 +102,28 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
   const handleMark = () => {
     dispatch({ type: 'TOGGLE_MARK', payload: { index: currentQuestionIndex } });
   };
+
+  const handleQuestionSelect = (index: number) => {
+    recordAnswer();
+    handleSetQuestion(index);
+  }
   
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+        recordAnswer();
+        // The answers state might not have updated yet, so we'll create a final version.
+        const finalAnswers = { ...answers };
         if (selectedOption) {
-            dispatch({ type: 'SET_ANSWER', payload: { index: currentQuestionIndex, answer: selectedOption } });
+            const existingTime = finalAnswers[currentQuestionIndex]?.timeTaken || 0;
+            finalAnswers[currentQuestionIndex] = {
+                ...finalAnswers[currentQuestionIndex],
+                answer: selectedOption,
+                status: 'answered',
+                timeTaken: existingTime + questionTime
+            };
         }
-        await submitPracticeSession(session.id, answers);
+        await submitPracticeSession(session.id, finalAnswers);
     } catch(error) {
         toast({
             variant: "destructive",
@@ -102,12 +134,11 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
     }
   }
 
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
+  const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
     const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
     const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    return `${minutes}:${seconds}`;
   };
 
   return (
@@ -117,7 +148,7 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
           <CardHeader>
             <div className="flex justify-between items-center">
                 <CardTitle>Question {currentQuestionIndex + 1} of {session.questions.length}</CardTitle>
-                <div className="font-mono text-lg font-semibold bg-muted px-3 py-1 rounded-md">{formatTime(timeElapsed)}</div>
+                <div className="font-mono text-lg font-semibold bg-muted px-3 py-1 rounded-md">{formatTime(questionTime)}</div>
             </div>
             <CardDescription>Topic: {session.topic} | Difficulty: {session.difficulty}</CardDescription>
             <Progress value={progress} className="mt-2" />
@@ -179,7 +210,7 @@ export function PracticeArea({ session }: { session: PracticeSession }) {
           totalQuestions={session.questions.length}
           answers={answers}
           currentIndex={currentQuestionIndex}
-          onQuestionSelect={setCurrentQuestionIndex}
+          onQuestionSelect={handleQuestionSelect}
         />
       </div>
     </div>

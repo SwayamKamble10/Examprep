@@ -10,8 +10,9 @@ export interface PracticeQuestion {
 }
 
 export type UserAnswer = { 
-  answer: string; 
-  status: 'answered' | 'marked';
+  answer?: string; 
+  status?: 'answered' | 'marked';
+  timeTaken?: number;
 }
 
 export interface PracticeSession {
