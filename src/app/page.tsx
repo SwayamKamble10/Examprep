@@ -6,9 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { initiateGoogleSignIn } from '@/firebase/non-blocking-login';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 const featureCards = [
   {
@@ -100,12 +101,19 @@ function ShieldCheck(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
   const heroImage = placeholderImages.placeholderImages.find(
     (p) => p.id === 'hero-landing'
   );
   const auth = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -123,6 +131,12 @@ export default function Home() {
       });
     }
   };
+
+  // While checking auth state, we can show a loader or null. 
+  // Returning null for a cleaner initial view.
+  if (isUserLoading || user) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
