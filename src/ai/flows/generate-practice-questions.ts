@@ -24,10 +24,10 @@ export type GeneratePracticeQuestionsInput = z.infer<typeof GeneratePracticeQues
 const GeneratePracticeQuestionsOutputSchema = z.object({
   questions: z.array(
     z.object({
-      questionText: z.string().describe('The text of the question.'),
-      options: z.array(z.string()).describe('The possible answer options for the question.'),
-      correctAnswer: z.string().describe('The correct answer for the question.'),
-      solution: z.string().describe('A detailed step-by-step solution to the question.'),
+      questionText: z.string().describe('The text of the question, formatted as a string. Mathematical expressions should be in LaTeX format.'),
+      options: z.array(z.string()).length(4).describe('An array of exactly four possible answer options for the question.'),
+      correctAnswer: z.string().describe('The correct answer for the question. This must exactly match one of the strings in the options array.'),
+      solution: z.string().describe('A detailed step-by-step solution to the question. Mathematical expressions should be in LaTeX format.'),
     })
   ).describe('An array of practice questions.')
 });
@@ -42,18 +42,17 @@ const prompt = ai.definePrompt({
   name: 'generatePracticeQuestionsPrompt',
   input: {schema: GeneratePracticeQuestionsInputSchema},
   output: {schema: GeneratePracticeQuestionsOutputSchema},
-  prompt: `You are an AI expert in generating practice questions for competitive exams. You will generate {{numQuestions}} practice questions for the {{exam}} exam, specifically for the subject of {{subject}}, and focusing on the topic of {{topic}}. The difficulty level of the questions should be {{difficulty}}. Each question should have 4 options, clearly labeled as A, B, C, and D. Provide the correct answer and a detailed, step-by-step solution for each question.
+  prompt: `You are an AI expert in generating practice questions for competitive exams in India. Your task is to generate {{numQuestions}} practice questions for the {{exam}} exam.
+The questions should be for the subject of {{subject}} and focus on the topic of {{topic}}. The difficulty level should be {{difficulty}}.
 
-Here's the format for each question:
-
-Question: [The question text]
-Options:
-A) [Option A]
-B) [Option B]
-C) [Option C]
-D) [Option D]
-Correct Answer: [The correct answer]
-Solution: [The detailed step-by-step solution]`,
+IMPORTANT: You must follow these instructions precisely.
+1.  Generate the specified number of questions.
+2.  Each question must have exactly 4 multiple-choice options.
+3.  The 'correctAnswer' field must be an exact match to one of the strings in the 'options' array.
+4.  Provide a detailed, step-by-step solution for each question.
+5.  Format all mathematical equations and symbols using LaTeX.
+6.  The output must be a valid JSON object that conforms to the specified output schema. Do not include any text or formatting outside of the JSON structure.
+`,
 });
 
 const generatePracticeQuestionsFlow = ai.defineFlow(
