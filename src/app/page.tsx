@@ -114,7 +114,7 @@ export default function Home() {
                   height={600}
                 />
               )}
-              <div className="flex flex-col justify-center space-y-4">
+              <div className="flex flex-col justify-center space-y-4 text-center">
                 <div className="space-y-4">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-foreground">
                     Master Your Competitive Exams
@@ -124,7 +124,7 @@ export default function Home() {
                     practice environment for Indian competitive exam aspirants.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">
                   <Button size="lg" asChild>
                     <Link href="/dashboard">Start Practicing Now</Link>
                   </Button>
@@ -150,7 +150,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 pt-16">
+            <div className="mx-auto grid max-w-5xl items-center gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 pt-16">
               {featureCards.map((feature, index) => (
                 <div key={index} className="grid gap-2 text-center">
                   <div className="flex justify-center items-center mb-4">
