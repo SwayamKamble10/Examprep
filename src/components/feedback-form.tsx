@@ -1,7 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
+import { useFormStatus } from 'react-dom';
 import { submitFeedback } from '@/app/actions';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ function SubmitButton() {
 }
 
 export default function FeedbackForm() {
-    const [state, formAction] = useFormState(submitFeedback, initialState);
+    const [state, formAction] = useActionState(submitFeedback, initialState);
     const formRef = useRef<HTMLFormElement>(null);
     const { toast } = useToast();
 
