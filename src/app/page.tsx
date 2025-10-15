@@ -150,7 +150,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-center gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 pt-16">
+            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 pt-16">
               {featureCards.map((feature, index) => (
                 <div key={index} className="grid gap-2 text-center">
                   <div className="flex justify-center items-center mb-4">
