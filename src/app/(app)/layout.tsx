@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Book, Home, MessageSquare, PlusCircle, User } from 'lucide-react';
+import { Book, Home, MessageSquare, PlusCircle, User, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,6 +45,8 @@ const adminUids = ['iAdMpf9VnlQBQRmAV8szqi1VZxI3'];
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const auth = useAuth();
+  const { setTheme } = useTheme();
+
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -106,6 +109,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem disabled>Settings</DropdownMenuItem>
+              <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={() => setTheme('light')}>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>Light</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('dark')}>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>Dark</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
