@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import type { PracticeSession, PracticeQuestion } from './lib/types';
 import { getFirestore, doc, setDoc, serverTimestamp, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { getSdks } from '@/firebase';
+import { getAuth } from 'firebase/auth';
 
 // A server-side only utility to get an admin-authenticated firestore instance.
 function getAdminFirestore() {
@@ -122,13 +123,38 @@ export async function submitPracticeSession(sessionId: string, userId: string, u
 
 
 export async function submitFeedback(prevState: any, formData: FormData) {
-    const feedback = formData.get('feedback') as string;
-    if (!feedback || feedback.trim().length < 10) {
+    const feedbackText = formData.get('feedback') as string;
+    if (!feedbackText || feedbackText.trim().length < 10) {
         return { error: 'Feedback must be at least 10 characters long.' };
     }
-    console.log('Feedback submitted:', feedback);
-    // Here you would save the feedback to your database
-    return { success: 'Thank you for your feedback!' };
+
+    try {
+        const { auth, firestore } = getSdks();
+        const currentUser = auth.currentUser;
+
+        const feedbackData: {
+            text: string;
+            createdAt: FieldValue;
+            userId?: string;
+            userEmail?: string;
+        } = {
+            text: feedbackText,
+            createdAt: serverTimestamp(),
+        };
+
+        if (currentUser) {
+            feedbackData.userId = currentUser.uid;
+            feedbackData.userEmail = currentUser.email || 'N/A';
+        }
+
+        const feedbackCollection = collection(firestore, 'feedback');
+        await addDoc(feedbackCollection, feedbackData);
+
+        return { success: 'Thank you for your feedback!' };
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        return { error: 'Sorry, we were unable to submit your feedback at this time.' };
+    }
 }
 
 const AddQuestionSchema = z.object({

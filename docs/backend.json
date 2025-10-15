@@ -226,6 +226,36 @@
         "timeTaken",
         "markedForReview"
       ]
+    },
+    "Feedback": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Feedback",
+      "type": "object",
+      "description": "Represents feedback submitted by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the feedback."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who submitted the feedback (if logged in)."
+        },
+        "userEmail": {
+            "type": "string",
+            "description": "The email of the user who submitted the feedback (if logged in)."
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the feedback."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the feedback was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "text", "createdAt"]
     }
   },
   "auth": {
@@ -310,8 +340,24 @@
             }
           ]
         }
+      },
+      {
+          "path": "/feedback/{feedbackId}",
+          "definition": {
+            "entityName": "Feedback",
+            "schema": {
+              "$ref": "#/backend/entities/Feedback"
+            },
+            "description": "Stores feedback submitted by users.",
+            "params": [
+              {
+                "name": "feedbackId",
+                "description": "Unique identifier for the feedback."
+              }
+            ]
+          }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the ExamPrep platform's core features, focusing on secure user authentication using Google Sign-In and efficient practice session management. Authorization Independence is achieved by storing User IDs directly within PracticeSession documents, eliminating the need for `get()` calls in security rules. Segregation of user data is maintained by nesting PracticeSessions under User documents. This approach provides a robust and easily debuggable security model.\n\nThe `users` collection stores user profiles, leveraging the `googleId` for authentication as requested. Practice sessions are stored under user-specific subcollections (`/users/{userId}/practiceSessions/{practiceSessionId}`), ensuring clear ownership and simplifying security rules.  Question sessions are nested under Practice Sessions.\n\nThis structure supports required QAPs by enabling secure `list` operations within the `/users/{userId}/practiceSessions` collection, as only the authenticated user can access their own practice sessions. It also provides a clear and scalable pattern for managing user-specific data."
+    "reasoning": "The Firestore structure is designed to support the ExamPrep platform's core features, focusing on secure user authentication using Google Sign-In and efficient practice session management. Authorization Independence is achieved by storing User IDs directly within PracticeSession documents, eliminating the need for `get()` calls in security rules. Segregation of user data is maintained by nesting PracticeSessions under User documents. This approach provides a robust and easily debuggable security model.\n\nThe `users` collection stores user profiles, leveraging the `googleId` for authentication as requested. Practice sessions are stored under user-specific subcollections (`/users/{userId}/practiceSessions/{practiceSessionId}`), ensuring clear ownership and simplifying security rules.  Question sessions are nested under Practice Sessions. The `feedback` collection is a top-level collection to store all user feedback, which can be optionally associated with a user ID.\n\nThis structure supports required QAPs by enabling secure `list` operations within the `/users/{userId}/practiceSessions` collection, as only the authenticated user can access their own practice sessions. It also provides a clear and scalable pattern for managing user-specific data."
   }
 }
