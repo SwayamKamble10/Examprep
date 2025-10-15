@@ -5,41 +5,44 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore'
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
+let firebaseApp: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
+
+function initializeServices() {
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
       firebaseApp = initializeApp();
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('Automatic initialization failed, falling back to config.', e);
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
-
-    return getSdks(firebaseApp);
+  } else {
+    firebaseApp = getApp();
   }
-
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  auth = getAuth(firebaseApp);
+  firestore = getFirestore(firebaseApp);
+  return { firebaseApp, auth, firestore };
 }
 
-export function getSdks(firebaseApp?: FirebaseApp) {
-  const app = firebaseApp || (getApps().length ? getApp() : initializeApp(firebaseConfig));
-  return {
-    firebaseApp: app,
-    auth: getAuth(app),
-    firestore: getFirestore(app)
-  };
+
+// A server-side only utility to get an admin-authenticated firestore instance.
+export function getSdks() {
+    if (!firestore) {
+        initializeServices();
+    }
+    return { auth, firestore, firebaseApp };
 }
+
+export function initializeFirebase() {
+    if (firestore) {
+        return {firebaseApp, auth, firestore}
+    }
+    return initializeServices();
+}
+
 
 export * from './provider';
 export * from './client-provider';
