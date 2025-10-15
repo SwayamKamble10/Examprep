@@ -57,18 +57,6 @@ export default function ProfilePage() {
               <p className="text-muted-foreground">{user?.email}</p>
             </div>
           </div>
-          {user?.uid && (
-            <div className="space-y-2">
-                <Label htmlFor="uid">Your Admin User ID (UID)</Label>
-                <div className="flex items-center gap-2">
-                    <Input id="uid" readOnly value={user.uid} />
-                    <Button variant="outline" size="icon" onClick={handleCopy}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">Copy this ID to grant yourself admin access.</p>
-            </div>
-          )}
         </CardContent>
         <CardFooter>
             <Button disabled>Edit Profile (Coming Soon)</Button>
