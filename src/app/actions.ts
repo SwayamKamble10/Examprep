@@ -124,17 +124,18 @@ export async function submitPracticeSession(sessionId: string, userId: string, u
 
 export async function submitFeedback(prevState: any, formData: FormData) {
     const feedbackText = formData.get('feedback') as string;
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
     if (!feedbackText || feedbackText.trim().length < 10) {
         return { error: 'Feedback must be at least 10 characters long.' };
     }
 
     try {
-        const { auth, firestore } = getSdks();
-        const currentUser = auth.currentUser;
-
+        const firestore = getAdminFirestore();
         const feedbackData: {
             text: string;
-            createdAt: FieldValue;
+            createdAt: any;
             userId?: string;
             userEmail?: string;
         } = {
