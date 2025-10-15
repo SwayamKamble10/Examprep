@@ -114,17 +114,17 @@ export default function Home() {
                   height={600}
                 />
               )}
-              <div className="flex flex-col justify-center space-y-4 text-center">
+              <div className="flex flex-col justify-center space-y-4 text-center lg:text-left">
                 <div className="space-y-4">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-foreground">
                     Master Your Competitive Exams
                   </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl font-body">
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl font-body mx-auto lg:mx-0">
                     A minimalist platform providing a focused, high-quality
                     practice environment for Indian competitive exam aspirants.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">
+                <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center lg:justify-start">
                   <Button size="lg" asChild>
                     <Link href="/dashboard">Start Practicing Now</Link>
                   </Button>
