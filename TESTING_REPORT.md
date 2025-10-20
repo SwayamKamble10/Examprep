@@ -10,12 +10,12 @@ The application is now in a stable and validated state following the application
 
 The following key areas were identified for improvement and subsequently addressed:
 
-| ID  | Issue                               | File(s) Affected                                   | Status    |
-| --- | ----------------------------------- | -------------------------------------------------- | --------- |
-| 1   | Invalid Admin User ID               | `src/app/(app)/layout.tsx`                         | **Fixed** |
-| 2   | Lack of Type Safety in `useCollection` | `src/app/(app)/dashboard/page.tsx`                 | **Fixed** |
-| 3   | Inconsistent Form Error Handling    | `src/app/(app)/admin/add-questions/page.tsx`       | **Fixed** |
-| 4   | Unused Code and Imports             | Various files                                      | **Fixed** |
+| ID  | Verification (Issue Found)          | Validation (Action Taken)                        | File(s) Affected                                   | Status    |
+| --- | ----------------------------------- | ------------------------------------------------ | -------------------------------------------------- | --------- |
+| 1   | Invalid Admin User ID               | Removed the invalid, hardcoded UID               | `src/app/(app)/layout.tsx`                         | **Fixed** |
+| 2   | Lack of Type Safety                 | Added specific `<PracticeSession>` type to hook    | `src/app/(app)/dashboard/page.tsx`                 | **Fixed** |
+| 3   | Inconsistent Form Error Handling    | Aligned client-side logic with server response   | `src/app/(app)/admin/add-questions/page.tsx`       | **Fixed** |
+| 4   | Unused Code and Imports             | Removed unnecessary code and imports             | Various files                                      | **Fixed** |
 
 ---
 
