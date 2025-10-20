@@ -40,7 +40,7 @@ const adminNavLinks = [
 ];
 
 // Add your Firebase User UIDs here to grant admin access
-const adminUids = ['iAdMpf9VnlQBQRmAV8szqi1VZxI3'];
+const adminUids: string[] = [];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();

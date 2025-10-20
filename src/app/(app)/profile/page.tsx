@@ -11,24 +11,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/firebase';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Copy } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useUser();
-  const { toast } = useToast();
-
-  const handleCopy = () => {
-    if (user?.uid) {
-      navigator.clipboard.writeText(user.uid);
-      toast({
-        title: 'Copied to clipboard!',
-        description: 'Your User ID has been copied.',
-      });
-    }
-  };
 
   return (
     <>

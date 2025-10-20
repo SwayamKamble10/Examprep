@@ -75,8 +75,12 @@ export default function AddQuestionPage() {
 
     try {
       const result = await addQuestion(formData);
-      if(result.error) {
-        throw new Error(result.error);
+      if (result.error) {
+        // This will handle both validation errors and other server-side errors
+        const errorMessage = typeof result.error === 'string'
+          ? result.error
+          : Object.values(result.error).flat().join(', ');
+        throw new Error(errorMessage);
       }
       toast({
         title: 'Question Added!',
